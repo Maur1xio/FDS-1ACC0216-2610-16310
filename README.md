@@ -1,7 +1,7 @@
 # Trending YouTube Video Statistics (México) - Fundamentos de Data Science
 
 ## Objetivo del trabajo
-Realizar un análisis exploratorio y de calidad de datos (EDA) sobre videos en tendencia de YouTube en México, con el fin de comprender patrones de engagement, preparar el conjunto de datos mediante técnicas de limpieza, integración y transformación, y extraer conclusiones iniciales que sirvan como base para un modelado predictivo de visualizaciones, utilizando Python como herramienta de software.
+Desarrollar un proyecto integral de ciencia de datos sobre videos en tendencia de YouTube en México, siguiendo las fases de comprensión, preparación y modelado: recolección e inventario de datos, descripción estructural, exploración univariada y bivariada, auditoría de calidad, limpieza e integración, y construcción de modelos de regresión lineal para predecir el volumen de visualizaciones (`views_log`), utilizando Python (Pandas, Scikit-learn, Seaborn, Plotly) como herramienta principal.
 
 ## Alumnos participantes
 - Belledonne Espinoza, Claudia Valeria
@@ -9,10 +9,23 @@ Realizar un análisis exploratorio y de calidad de datos (EDA) sobre videos en t
 - Rivera Hernandez, Gabriel Omar
 - Elera Rodríguez, Mauricio Elera
 
+## Estructura del repositorio
+
+| Carpeta / archivo | Contenido |
+|---|---|
+| `code/Reporte_de_recolección_de_datos.ipynb` | Fase de recolección e ingesta de datos |
+| `code/Reporte_de_descripción_de_los_datos.ipynb` | Inspección estructural y diccionario de variables |
+| `code/Reporte_de_exploración_de_los_datos.ipynb` | Análisis exploratorio univariado y bivariado |
+| `code/Reporte_de_calidad_de_los_datos.ipynb` | Auditoría de calidad (duplicados, nulos, outliers, consistencia lógica) |
+| `code/Reporte_de_calidad_de_datos_pt_2.ipynb` | Limpieza, integración, transformación y preparación para modelado |
+| `code/Data_Science (2).ipynb` | Notebook integrado con Fases 2, 3 y 4 (comprensión, preparación y modelado) |
+| `data/df_analisis.csv` | Dataset limpio completo para análisis descriptivo (40,401 × 23) |
+| `data/df_prediccion.csv` | Subconjunto predictivo con transformaciones logarítmicas (40,401 × 17) |
+
 ## Breve descripción del dataset
 El conjunto de datos utilizado se denomina **"Trending YouTube Video Statistics"**, correspondiente al país asignado: **México**. Consiste en registros diarios de videos que alcanzaron la sección de tendencias en la plataforma, enriquecidos con coordenadas geográficas `(lat, lon)`, división administrativa `(state)` y geometría `(geometry)`.
 
-Los archivos empleados son:
+Los archivos fuente empleados son:
 - `MXvideos_cc50_202101.csv` (CSV, ~45.7 MB): dataset transaccional principal.
 - `MX_category_id.json` (JSON, ~9 KB): metadatos de categorías de YouTube.
 
@@ -23,21 +36,44 @@ El dataset original comprende **44,043 registros** y **20 variables**, e incluye
 - Configuración del video (`comments_disabled`, `ratings_disabled`, `video_error_or_removed`).
 - Ubicación geográfica asociada (`state`, `lat`, `lon`, `geometry`).
 
-Tras las fases de limpieza y depuración, el conjunto quedó en **40,401 registros** válidos, listos para análisis descriptivo y modelado predictivo.
+Tras las fases de limpieza y depuración, el conjunto quedó en **40,401 registros** válidos con **33,953 videos únicos**. Los datasets exportados en `data/` conservan dos vistas del mismo universo limpio:
+- **`df_analisis.csv`**: réplica íntegra con 23 columnas (incluye `category_name`, `trending_date_dt` y campos descriptivos).
+- **`df_prediccion.csv`**: subconjunto de 17 columnas orientado al modelado (incluye `views_log`, `likes_log`, `dislikes_log`, `comment_count_log`).
 
-*Nota: Para fines académicos, el dataset presenta inconsistencias reales que fueron tratadas durante el proyecto, como identificadores corruptos (`#NAME?`), registros duplicados, valores nulos estructurales y valores atípicos en las métricas de engagement.*
+*Nota: Para fines académicos, el dataset presenta inconsistencias reales que fueron tratadas durante el proyecto: identificadores corruptos (`#NAME?`, 452 registros), duplicados (3,495), bloques de filas con ~75% de campos vacíos por error de parseo, valores nulos en `description` y valores atípicos en las métricas de engagement.*
 
 ## Conclusiones
 
-- **Volumen y representatividad:** El dataset ofrece escala suficiente (más de 40,000 registros y ~34,250 videos únicos) para analizar de forma robusta el comportamiento de tendencias en YouTube México.
-- **Estructura semántica:** La combinación de variables categóricas (título, canal, categoría, estado) y numéricas (vistas, likes, dislikes, comentarios) permite caracterizar tanto el contenido como el nivel de interacción de cada video.
-- **Asimetría en el engagement:** Las métricas de interacción presentan alta dispersión y sesgo positivo (media de vistas ~342,000 vs. mediana ~57,000), reflejando la presencia de videos virales con alcance masivo frente a la mayoría de contenidos con tracción moderada.
-- **Categorías predominantes:** Las categorías más frecuentes incluyen **Entertainment**, **News & Politics** y **People & Blogs**, lo que indica una mezcla de entretenimiento, actualidad y contenido de creadores individuales dentro del ecosistema de tendencias mexicano.
-- **Cobertura geográfica:** Los registros abarcan **32 entidades federativas**; **Morelos** concentra la mayor frecuencia de apariciones, lo que sugiere un posible sesgo geográfico en la asignación o enriquecimiento de coordenadas del dataset.
-- **Calidad e integridad de datos:** Se corrigieron identificadores erróneos en `video_id`, se eliminaron duplicados y registros con más del 50% de campos vacíos, y se depuraron filas sin métricas esenciales, logrando un 0% de nulos en variables críticas como `views`.
-- **Tratamiento de outliers:** En lugar de eliminar videos virales, se aplicó transformación logarítmica (`log1p`) sobre `views`, `likes`, `dislikes` y `comment_count`, preservando la información de alto impacto y estabilizando las distribuciones para modelos lineales.
-- **Integración y enriquecimiento:** El mapeo de `category_id` con el archivo JSON permitió obtener nombres legibles de categorías (`category_name`), facilitando la interpretación de resultados en etapas posteriores.
-- **Preparación para modelado:** Se generaron variables derivadas (días hasta tendencia, ratios de polaridad y discusión), se codificaron variables categóricas (One-Hot Encoding), se abordó la multicolinealidad entre métricas de interacción y se estandarizaron los datos, dejando el conjunto en condiciones óptimas para la fase de modelado predictivo.
+### Exploración de datos
+- **Distribución de engagement:** Las cuatro métricas numéricas (`views`, `likes`, `dislikes`, `comment_count`) presentan sesgo positivo y cola larga. La mayor concentración de videos trending se ubica en el rango de **10K–100K vistas**; los likes se concentran en **100–10K**; los dislikes en **0–50**; y los comentarios en **0–500**.
+- **Correlación entre métricas:** Existe correlación positiva fuerte (**> 0.6**) entre `views` y las interacciones (`likes`, `comment_count`), confirmando que el alcance es el motor principal del engagement. Se detecta multicolinealidad entre `likes` y `comment_count`, relevante para el modelado.
+- **Categorías de contenido:** Predominan **Entertainment** y **People & Blogs**. Las categorías con medianas de vistas superiores corresponden a los IDs **10, 20 y 24** (Music, Gaming y Entertainment).
+- **Distribución geográfica:** La frecuencia de registros por estado es relativamente equilibrada entre las **32 entidades federativas**. En términos de volumen de vistas, no se observa un estado que domine sistemáticamente sobre los demás.
+- **Restricciones de interacción:** Los videos con comentarios habilitados (`comments_disabled = FALSO`) presentan mediana de vistas mayor que aquellos con comentarios desactivados.
+- **Estacionalidad:** La evolución mensual muestra picos de actividad no lineales, sugiriendo sensibilidad a factores temporales y de coyuntura.
+
+### Calidad de datos
+- **Duplicados e identificadores:** Se detectaron **3,495 duplicados** por la llave `(video_id, trending_date)` y **452 registros con `#NAME?`** en `video_id`. Tras corrección y depuración, el dataset quedó libre de duplicados e identificadores corruptos.
+- **Valores faltantes:** `description` concentra el mayor porcentaje de nulos (**18.65%** en crudo; **~10.4%** tras limpieza), comportamiento esperado por ser un campo opcional. Un bloque de **~3,453 filas** (~8.85%) presentaba ausencia sistémica de métricas por error de parseo en `video_id`.
+- **Consistencia lógica:** No se encontraron inconsistencias cruzadas (likes/dislikes/comentarios superiores a vistas, fechas de publicación posteriores a la de tendencia, etc.). La categoría **43** es histórica (anterior a la fecha máxima de tendencia: **2018-05-19**).
+- **Outliers:** Los valores extremos son reales (videos virales), con máximos de **100.91M vistas**, **4.47M likes** y **1.35M dislikes**. Se optó por conservarlos y aplicar transformación logarítmica en lugar de eliminarlos.
+
+### Preparación de datos
+- **Limpieza final:** De 44,043 registros originales se llegó a **40,401** válidos mediante corrección de IDs, eliminación de duplicados, filtro por umbral de completitud (50%) y depuración de filas sin `views`.
+- **Transformaciones:** Se aplicó `log1p` sobre métricas de engagement, se integraron categorías desde JSON (`category_name`), se calculó `days_until_trend`, se codificaron variables categóricas (One-Hot Encoding) y se generaron ratios de **polaridad** y **discusión** para mitigar multicolinealidad.
+- **Estandarización:** División train/test (80/20), escalamiento con `StandardScaler` y reducción dimensional con PCA (2 componentes, **95.40%** de varianza retenida).
+
+### Modelado predictivo
+Se entrenaron cuatro modelos de regresión lineal sobre `views_log` (escalado), con los siguientes resultados en el set de prueba:
+
+| Modelo | R² | RMSE |
+|---|---:|---:|
+| Baseline | 0.8287 | 0.7229 |
+| Feature Engineering | **0.8305** | **0.7191** |
+| PCA | 0.8280 | 0.7243 |
+| Ridge Regression | **0.8305** | **0.7191** |
+
+Las variables con mayor peso en el modelo baseline son `dislikes_log`, `likes_log` y `ratings_disabled`. El escenario con Feature Engineering (ratios de polaridad y discusión) obtuvo el mejor desempeño, confirmando que las métricas de interacción son los predictores más relevantes del volumen de visualizaciones en videos trending.
 
 ## Licencia
 Este proyecto ha sido desarrollado con fines estrictamente académicos para el curso 1ACC0216 - Fundamentos de Data Science en la Universidad Peruana de Ciencias Aplicadas (UPC). El contenido, código y análisis presentados en este repositorio son propiedad de los autores mencionados en la sección de participantes. Se permite su uso y consulta exclusivamente con fines educativos y de referencia, siempre que se otorgue el crédito correspondiente a los autores originales y a la institución académica.
